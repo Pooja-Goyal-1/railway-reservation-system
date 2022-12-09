@@ -1,0 +1,36 @@
+Function for searching trains between any two stations:
+
+
+CREATE OR REPLACE FUNCTION SEARCH(SRC VARCHAR, DEST VARCHAR)
+returns text as $$
+declare
+rec record;
+rec2 record;
+output text default '';
+temp text default '';
+begin
+        for rec in
+        select routes.source as s, routes.destination as d, routes.dept_time as t1, routes.arrival_time as t2, routes.day_reach as d1, routes.day_departure as d2, routes.train_no as l1
+        from routes
+        where routes.source = src
+        loop
+                if rec.d=dest
+                then
+                        output=output||'Direct route found: Train: '||rec.l1||', Source: '||rec.s||', Source_departure_time: '||rec.t1||', Departure_day:'||rec.d2||', Destination: '||rec.d||', Destination_arrival_time: '||rec.t2||', ARRIVAL_DAY: '||rec.d1||'?';
+            
+                else
+                        for rec2 in
+                        select routes.source as s2, routes.destination as d, routes.dept_time as t3, routes.arrival_time as t4, routes.day_reach as d1, routes.day_departure as d2, routes.train_no as l2
+                        from routes
+                        where routes.source=rec.d and routes.destination=dest and (routes.train_no <rec.l1 or routes.train_no > rec.l1 )and ((routes.day_departure=rec.d1 AND routes.dept_time>rec.t2 AND routes.dept_time-rec.t2<'02:00:00') OR (rec.d1<6 AND routes.day_departure-rec.d1=1 AND routes.dept_time<rec.t2 AND rec.t2-routes.dept_time>'22:00:00') OR (rec.d1=6 AND routes.day_departure=0 AND routes.dept_time<rec.t2 AND rec.t2-routes.dept_time>'22:00:00'))
+                        loop
+                                output=output||'Route with one break: Train1: '||rec.l1||', Train2: '||rec2.l2||', Source: '||rec.s||', Source_departure_time: '||rec.t1||', Departure_day:'||rec.d2||', Temp_Destination: '||rec.d||', Temp_Destination_arrival_time: '||rec.t2||', Temp_Destination_arrival_day: '||rec.d1||', Temp_Destination_departure_time: '||rec2.t3||', Temp_Destination_Departure_day:'||rec2.d2||', Destination: '||rec2.d||', Destination_arrival_time: '||rec2.t4||', Destination_arrival_day:'||rec2.d1 ||'?';
+                
+            end loop;
+                        
+                end if;
+        end loop;
+        return output;
+end;
+$$
+language plpgsql;

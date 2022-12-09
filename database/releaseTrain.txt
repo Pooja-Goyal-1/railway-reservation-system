@@ -1,0 +1,46 @@
+Function to release train:
+
+CREATE OR REPLACE FUNCTION release_train( train_id_curr INT, calender_date_curr DATE, num_AC_coach INT, num_Sleeper_coach INT)
+RETURNS void
+AS $$
+
+
+DECLARE
+Current_variable INTEGER := 0;
+Seats INTEGER := 0;
+AC_availabe INTEGER := num_AC_coach*18;
+Sleeper_availabe INTEGER := num_Sleeper_coach*24;
+Name_ac varchar := 'ac_seats'||train_id_curr || translate(CAST(calender_date_curr AS TEXT),'-','');
+Name_sleeper varchar := 'sleeper_seats'||train_id_curr || translate(CAST(calender_date_curr AS TEXT),'-','');
+isTrainAvailable INT;
+
+
+BEGIN
+
+
+SELECT count(*) into isTrainAvailable FROM trains WHERE train_id=train_id_curr and calender_date=calender_date_curr;
+
+
+IF isTrainAvailable > 0 THEN
+RETURN;
+END IF;
+
+
+EXECUTE format('CREATE TABLE IF NOT EXISTS %I ( current_seat INT, current_coach INT,seats_available INT,seats_booked INT)',Name_ac);
+
+
+EXECUTE format('CREATE TABLE IF NOT EXISTS %I ( current_seat INT, current_coach INT,seats_available INT,seats_booked INT)',Name_sleeper);
+
+
+EXECUTE 'INSERT INTO ' || quote_ident( Name_ac )||' VALUES (' || Current_variable||','||Current_variable||','||AC_availabe||','||Seats||')';
+
+
+EXECUTE 'INSERT INTO ' || quote_ident( Name_sleeper )||' VALUES ('|| Current_variable||','||Current_variable||','||Sleeper_availabe||','||Seats||')';
+
+
+EXECUTE 'INSERT INTO  trains VALUES ('||train_id_curr||',$1)'using calender_date_curr;
+
+
+END;
+$$
+LANGUAGE plpgsql;

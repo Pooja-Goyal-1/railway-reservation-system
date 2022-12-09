@@ -1,0 +1,127 @@
+Function to book ticket:
+
+CREATE OR REPLACE FUNCTION book_tickets(IN num_passengers INTEGER, IN name_passengers VARCHAR, IN train_no INTEGER, IN doj DATE, IN class VARCHAR)
+returns text as $$
+
+
+declare
+ac_seats_availability VARCHAR:='ac_seats'||train_no||translate(CAST(doj AS TEXT),'-','');
+sleeper_seats_availability VARCHAR:='sleeper_seats'||train_no||translate(CAST(doj AS TEXT),'-','');
+coach_no INT;
+berth_no INT;
+available_seats INT;
+seats_booked INT;
+pnr VARCHAR;
+isTrainAvailable INT;
+output text default '';
+
+
+Begin
+SELECT count(*) into isTrainAvailable FROM trains WHERE train_id=train_no and calender_date=doj;
+IF isTrainAvailable=0 THEN output='1';
+RETURN output;
+END IF;
+IF class='AC' THEN
+
+
+EXECUTE format('LOCK TABLE ONLY %I IN ACCESS EXCLUSIVE MODE',ac_seats_availability);
+
+
+EXECUTE  format('SELECT current_seat,current_coach,seats_available,seats_booked FROM %I ',ac_seats_availability) INTO berth_no,coach_no,available_seats,seats_booked;
+
+
+IF  available_seats<num_passengers THEN output='2';
+RETURN output;
+END IF;
+IF available_seats>=num_passengers THEN
+
+
+EXECUTE format('UPDATE %I SET seats_available = $1',ac_seats_availability) using available_seats-num_passengers;
+
+
+EXECUTE format('UPDATE %I SET seats_booked = $1',ac_seats_availability) using seats_booked+num_passengers;
+
+
+seats_booked:=seats_booked+num_passengers;
+
+
+EXECUTE format('UPDATE %I SET current_seat  = $1',ac_seats_availability) using seats_booked%24;
+EXECUTE format('UPDATE %I SET current_coach = $1',ac_seats_availability) using seats_booked/24;
+IF berth_no < 10 THEN
+pnr:=
+train_no||''||translate(CAST(doj AS TEXT),'-','')||'1'||coach_no||'0'||berth_no;
+ELSE 
+pnr:=
+train_no||''||translate(CAST(doj AS TEXT),'-','')||'1'||coach_no||''||berth_no;
+END IF;
+
+
+coach_no:=coach_no+1;
+berth_no:=berth_no+1;
+
+
+EXECUTE format('INSERT INTO ticket_details VALUES($1,$2,$3,$4,$5, $6, $7);') using pnr, train_no, doj, class, num_passengers, coach_no, berth_no;
+
+
+output=pnr;
+RETURN output;
+
+
+END IF;
+END IF;
+
+
+IF class='SL' THEN
+
+
+EXECUTE format('LOCK TABLE ONLY %I IN ACCESS EXCLUSIVE MODE',sleeper_seats_availability);
+
+
+EXECUTE  format('SELECT current_seat,current_coach,seats_available,seats_booked FROM %I ',sleeper_seats_availability) INTO berth_no,coach_no,available_seats,seats_booked;
+
+
+IF  available_seats<num_passengers THEN output='2';
+RETURN output;
+END IF;
+IF available_seats>=num_passengers THEN
+
+
+EXECUTE format('UPDATE %I SET seats_available = $1',sleeper_seats_availability) using available_seats-num_passengers;
+
+
+EXECUTE format('UPDATE %I SET seats_booked = $1',sleeper_seats_availability) using seats_booked+num_passengers;
+
+
+seats_booked:=seats_booked+num_passengers;
+
+
+EXECUTE format('UPDATE %I SET current_seat  = $1',sleeper_seats_availability) using seats_booked%24;
+EXECUTE format('UPDATE %I SET current_coach = $1',sleeper_seats_availability) using seats_booked/24;
+IF berth_no < 10 THEN
+pnr:=
+train_no||''||translate(CAST(doj AS TEXT),'-','')||'2'||coach_no||'0'||berth_no;
+ELSE 
+pnr:=
+train_no||''||translate(CAST(doj AS TEXT),'-','')||'2'||coach_no||''||berth_no;
+END IF;
+
+
+coach_no:=coach_no+1;
+berth_no:=berth_no+1;
+
+
+EXECUTE format('INSERT INTO ticket_details VALUES($1,$2,$3,$4,$5, $6, $7);') using pnr, train_no, doj, class, num_passengers, coach_no, berth_no;
+
+
+output=pnr;
+RETURN output;
+
+
+END IF;
+END IF;
+
+
+RETURN output;
+end;
+$$
+language plpgsql;

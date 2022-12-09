@@ -1,0 +1,15 @@
+Relations in the database:
+
+1. Trains : 
+
+CREATE TABLE trains (train_id INT, calender_date DATE);
+
+
+2. Ticket Details : 
+
+CREATE TABLE ticket_details( pnr VARCHAR , train_id INT , calender_date DATE, class VARCHAR , num_passengers INT, coach_no INT, berth_no INT);
+
+
+3. Routes : 
+
+CREATE TABLE ROUTES(SOURCE VARCHAR,DESTINATION VARCHAR,DEPT_TIME TIME,ARRIVAL_TIME TIME,DAY_REACH INT,DAY_DEPARTURE INT,TRAIN_NO INT);
